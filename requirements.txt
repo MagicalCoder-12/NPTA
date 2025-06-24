@@ -1,3 +1,6 @@
+setuptools>=65.5.0
+wheel
+
 Flask==3.0.0
 pymongo==4.6.1
 Flask-Session==0.5.0
