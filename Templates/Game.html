@@ -573,7 +573,7 @@
                 return { valid: false, reason: 'wrong_letter' };
             }
 
-            // Check local validation data first
+            // Step 1: Local list
             const categoryData = validationData[category + 's'] || [];
             const isValidLocal = categoryData.some(
                 validWord =>
@@ -581,47 +581,75 @@
                     cleanWord.includes(validWord.toLowerCase()) ||
                     validWord.toLowerCase().includes(cleanWord)
             );
+            if (isValidLocal) return { valid: true, reason: 'valid' };
 
-            if (isValidLocal) {
-                return { valid: true, reason: 'valid' };
+            // Step 2: Check word existence with Datamuse
+            try {
+                const datamuseRes = await fetch(`https://api.datamuse.com/words?sp=${cleanWord}&max=1`);
+                const datamuseData = await datamuseRes.json();
+
+                const found = Array.isArray(datamuseData) &&
+                            datamuseData.length > 0 &&
+                            datamuseData[0].word.toLowerCase() === cleanWord;
+
+                if (!found) return { valid: false, reason: 'not_found' };
+            } catch (error) {
+                console.error('Datamuse error:', error);
+                return { valid: false, reason: 'api_error' };
             }
 
-            // Fallback to Merriam-Webster API
+            // Step 3: Get definition from Free Dictionary API
             try {
-                const apiKey = '694a726c-9046-44fb-a515-d7bdc85329fe'; // Replace with your API key
-                const response = await fetch(
-                    `https://www.dictionaryapi.com/api/v3/references/collegiate/json/${cleanWord}?key=${apiKey}`
-                );
-                const data = await response.json();
+                const dictRes = await fetch(`https://api.dictionaryapi.dev/api/v2/entries/en/${cleanWord}`);
+                const dictData = await dictRes.json();
 
-                // Check if the word exists in the dictionary
-                if (Array.isArray(data) && data.length > 0 && data[0].meta) {
-                    // Optional: Validate category (e.g., "animal" or "place")
-                    const definition = data[0].shortdef?.[0]?.toLowerCase() || '';
-                    const isCategoryValid = checkCategoryMatch(category, definition);
-                    return { valid: isCategoryValid, reason: isCategoryValid ? 'valid' : 'category_mismatch' };
-                } else {
+                if (!Array.isArray(dictData) || dictData.length === 0) {
                     return { valid: false, reason: 'not_found' };
                 }
+
+                const firstEntry = dictData[0];
+                const definition = firstEntry.meanings?.[0]?.definitions?.[0]?.definition?.toLowerCase() || '';
+                const partOfSpeech = firstEntry.meanings?.[0]?.partOfSpeech?.toLowerCase();
+
+                const isCategoryValid = checkCategoryMatch(category, definition, cleanWord, partOfSpeech);
+                return { valid: isCategoryValid, reason: isCategoryValid ? 'valid' : 'category_mismatch' };
             } catch (error) {
-                console.error('API validation error:', error);
-                return { valid: false, reason: 'api_error' }; // Fallback to local validation or invalid
+                console.error('Dictionary API error:', error);
+                return { valid: true, reason: 'exists_but_uncategorized' };  // Optional fallback
             }
         }
 
-        // Helper function to check if the word matches the category
-        function checkCategoryMatch(category, definition) {
-            if (category === 'name') {
-                return definition.includes('person') || definition.includes('name');
-            } else if (category === 'place') {
-                return definition.includes('place') || definition.includes('city') || definition.includes('country');
-            } else if (category === 'thing') {
-                return definition.includes('object') || definition.includes('item') || !definition.includes('living thing');
-            } else if (category === 'animal') {
-                return definition.includes('animal') || definition.includes('mammal') || definition.includes('bird');
-            }
-            return true; // Default to true if no specific category check
+
+    function checkCategoryMatch(category, definition, word, partOfSpeech) {
+        if (category === 'name') {
+            return definition.includes('name') || partOfSpeech === 'proper noun';
+        } else if (category === 'place') {
+            return (
+                definition.includes('city') ||
+                definition.includes('country') ||
+                definition.includes('region') ||
+                definition.includes('capital') ||
+                partOfSpeech === 'proper noun' ||
+                ['hyderabad', 'delhi', 'tokyo'].includes(word)
+            );
+        } else if (category === 'thing') {
+            return (
+                partOfSpeech === 'noun' &&
+                !definition.includes('animal') &&
+                !definition.includes('person')
+            );
+        } else if (category === 'animal') {
+            return (
+                definition.includes('animal') ||
+                definition.includes('mammal') ||
+                definition.includes('bird') ||
+                definition.includes('fish') ||
+                definition.includes('insect') ||
+                definition.includes('reptile')
+            );
         }
+        return true;
+    }
 
         function checkDuplicates(answers, category) {
             const categoryAnswers = answers.map(a => a[category]?.toLowerCase().trim()).filter(a => a);
