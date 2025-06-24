@@ -3,3 +3,4 @@ python-dotenv
 pymongo
 flask-session
 qrcode
+gunicorn

@@ -86,12 +86,12 @@ def view_users():
     users = list(users_collection.find({}, {'_id': 0, 'password': 0}))
     return render_template('users.html', users=users)
 
-@app.route('/admin/delete_user/<username>')
+@app.route('/admin/delete_user/<username>', methods=['DELETE'])
 def delete_user(username):
     if not session.get('is_admin'):
         return abort(403)
     users_collection.delete_one({'username': username})
-    return jsonify(success=True)
+    return jsonify({'success': True})
 
 @app.route('/admin/edit_user/<username>', methods=['PUT'])
 def edit_user(username):
@@ -208,3 +208,6 @@ def page_not_found(e):
 @app.errorhandler(403)
 def forbidden(e):
     return "Access Denied", 403
+
+if __name__ == '__main__':
+    app.run(debug=True)
