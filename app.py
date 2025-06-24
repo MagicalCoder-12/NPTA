@@ -24,7 +24,6 @@ users_collection = db['users']
 INITIAL_ADMIN_USERNAME = os.getenv('ADMIN_USERNAME')
 INITIAL_ADMIN_PASSWORD = os.getenv('ADMIN_PASSWORD')
 
-
 # Create initial admin if needed
 def create_initial_admin():
     if INITIAL_ADMIN_USERNAME and INITIAL_ADMIN_PASSWORD:
@@ -46,20 +45,16 @@ def create_initial_admin():
                 }}
             )
 
-
 # Call on startup
 create_initial_admin()
-
 
 # Reusable error rendering
 def render_error(template, message):
     return render_template(template, error=message)
 
-
 @app.route('/')
 def home():
     return render_template('index.html')
-
 
 @app.route('/admin_login', methods=['GET', 'POST'])
 def admin_login():
@@ -78,13 +73,11 @@ def admin_login():
 
     return render_template('admin_login.html')
 
-
 @app.route('/admin')
 def admin_dashboard():
     if not session.get('is_admin'):
         return redirect(url_for('admin_login'))
     return render_template('admin.html')
-
 
 @app.route('/admin/users')
 def view_users():
@@ -93,7 +86,6 @@ def view_users():
     users = list(users_collection.find({}, {'_id': 0, 'password': 0}))
     return render_template('users.html', users=users)
 
-
 @app.route('/admin/delete_user/<username>')
 def delete_user(username):
     if not session.get('is_admin'):
@@ -101,14 +93,13 @@ def delete_user(username):
     users_collection.delete_one({'username': username})
     return jsonify(success=True)
 
-
-@app.route('/admin/edit_user/<username>', methods=['PUT'])  # Change to PUT
+@app.route('/admin/edit_user/<username>', methods=['PUT'])
 def edit_user(username):
     if not session.get('is_admin'):
         return abort(403)
     data = request.get_json()
     update_data = {'email': data.get('email')}
-    if 'role' in data and data['role'] is not None:  # Check for None explicitly
+    if 'role' in data and data['role'] is not None:
         update_data['role'] = data.get('role')
     try:
         result = users_collection.update_one({'username': username}, {'$set': update_data})
@@ -126,7 +117,6 @@ def recover_user(username):
     hashed_pw = generate_password_hash(data.get('password'))
     users_collection.update_one({'username': username}, {'$set': {'password': hashed_pw}})
     return jsonify(success=True)
-
 
 @app.route('/register', methods=['GET', 'POST'])
 def register():
@@ -155,7 +145,6 @@ def register():
 
     return render_template('register.html')
 
-
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
@@ -166,13 +155,13 @@ def login():
 
         if user and check_password_hash(user['password'], password):
             session['username'] = username
-            
+
             if user.get('role') == 'admin':
                 session['is_admin'] = True
             elif user.get('role') == 'moderator':
                 session['is_moderator'] = True
 
-            return redirect(url_for('home'))  # ✅ Fixed: use 'home' as the endpoint
+            return redirect(url_for('home'))
         else:
             return render_error('login.html', 'Invalid credentials')
 
@@ -189,13 +178,11 @@ def logout():
     session.clear()
     return redirect(url_for('home'))
 
-
 @app.route('/game/<username>')
 def game(username):
     if 'username' in session and session['username'] == username:
         return render_template('game.html', username=username)
     return redirect(url_for('home'))
-
 
 @app.route('/generate_qr')
 def generate_qr():
@@ -210,21 +197,14 @@ def generate_qr():
     buf.seek(0)
     return send_file(buf, mimetype='image/png', download_name='website_qr.png')
 
-
 @app.route('/qr')
 def qr_page():
     return render_template('qr.html')
-
 
 @app.errorhandler(404)
 def page_not_found(e):
     return render_template('404.html'), 404
 
-
 @app.errorhandler(403)
 def forbidden(e):
     return "Access Denied", 403
-
-
-if __name__ == '__main__':
-    app.run(debug=True)
