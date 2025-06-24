@@ -563,25 +563,64 @@
             }
         }
 
-        function validateWord(word, category, letter) {
+        async function validateWord(word, category, letter) {
             if (!word || word.trim() === '') return { valid: false, reason: 'empty' };
-            
+
             const cleanWord = word.toLowerCase().trim();
             const firstLetter = cleanWord.charAt(0).toLowerCase();
-            
+
             if (firstLetter !== letter.toLowerCase()) {
                 return { valid: false, reason: 'wrong_letter' };
             }
-            
-            // Check if word exists in our validation data
+
+            // Check local validation data first
             const categoryData = validationData[category + 's'] || [];
-            const isValid = categoryData.some(validWord => 
-                validWord.toLowerCase() === cleanWord ||
-                cleanWord.includes(validWord.toLowerCase()) ||
-                validWord.toLowerCase().includes(cleanWord)
+            const isValidLocal = categoryData.some(
+                validWord =>
+                    validWord.toLowerCase() === cleanWord ||
+                    cleanWord.includes(validWord.toLowerCase()) ||
+                    validWord.toLowerCase().includes(cleanWord)
             );
-            
-            return { valid: isValid, reason: isValid ? 'valid' : 'not_found' };
+
+            if (isValidLocal) {
+                return { valid: true, reason: 'valid' };
+            }
+
+            // Fallback to Merriam-Webster API
+            try {
+                const apiKey = '694a726c-9046-44fb-a515-d7bdc85329fe'; // Replace with your API key
+                const response = await fetch(
+                    `https://www.dictionaryapi.com/api/v3/references/collegiate/json/${cleanWord}?key=${apiKey}`
+                );
+                const data = await response.json();
+
+                // Check if the word exists in the dictionary
+                if (Array.isArray(data) && data.length > 0 && data[0].meta) {
+                    // Optional: Validate category (e.g., "animal" or "place")
+                    const definition = data[0].shortdef?.[0]?.toLowerCase() || '';
+                    const isCategoryValid = checkCategoryMatch(category, definition);
+                    return { valid: isCategoryValid, reason: isCategoryValid ? 'valid' : 'category_mismatch' };
+                } else {
+                    return { valid: false, reason: 'not_found' };
+                }
+            } catch (error) {
+                console.error('API validation error:', error);
+                return { valid: false, reason: 'api_error' }; // Fallback to local validation or invalid
+            }
+        }
+
+        // Helper function to check if the word matches the category
+        function checkCategoryMatch(category, definition) {
+            if (category === 'name') {
+                return definition.includes('person') || definition.includes('name');
+            } else if (category === 'place') {
+                return definition.includes('place') || definition.includes('city') || definition.includes('country');
+            } else if (category === 'thing') {
+                return definition.includes('object') || definition.includes('item') || !definition.includes('living thing');
+            } else if (category === 'animal') {
+                return definition.includes('animal') || definition.includes('mammal') || definition.includes('bird');
+            }
+            return true; // Default to true if no specific category check
         }
 
         function checkDuplicates(answers, category) {

@@ -3,29 +3,26 @@ body {
     padding: 0;
     font-family: 'Poppins', sans-serif;
     background: linear-gradient(135deg, #1e1e2f, #27293d);
-    color: white;
+    color: rgba(255, 255, 255, 0.95);
     min-height: 100vh;
 }
 
-/* Updated Navbar */
 .navbar {
     background: rgba(255, 255, 255, 0.05);
     padding: 10px 20px;
     display: flex;
     align-items: center;
-    gap: 20px; /* space between logo and links */
+    gap: 20px;
     border-bottom: 1px solid rgba(255, 255, 255, 0.1);
     position: relative;
-    z-index: 1000; /* ensure it stays above content */
+    z-index: 1000;
 }
 
-/* Small Logo/Icon */
 .navbar-logo {
-    height: 24px;
+    height: 30px;
     width: auto;
 }
 
-/* Navigation Links */
 .navbar a {
     color: #ffffffcc;
     text-decoration: none;
@@ -37,12 +34,10 @@ body {
     color: #ff4f70;
 }
 
-/* Space between logo and first link */
 .navbar .me-auto {
     margin-right: 10px;
 }
 
-/* Flex container for nav links */
 .nav-links {
     display: flex;
     gap: 18px;
@@ -58,6 +53,7 @@ body {
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
     backdrop-filter: blur(8px);
     text-align: center;
+    color: #f0f0f0;
 }
 
 .container a.btn {
@@ -74,15 +70,17 @@ body {
     background-color: #1e88e5;
 }
 
-h1 {
-    text-align: center;
-    margin-bottom: 20px;
+h1, h2, h3 {
+    color: #ffffff;
+    text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.6);
 }
 
 label {
     display: block;
     margin: 12px 0 6px;
     font-weight: 600;
+    color: #e0e0e0;
+    text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
 }
 
 input[type="text"],
@@ -90,10 +88,10 @@ input[type="email"],
 input[type="password"] {
     width: 100%;
     padding: 10px;
-    background: rgba(255, 255, 255, 0.1);
-    border: none;
+    background: rgba(255, 255, 255, 0.12);
+    border: 1px solid rgba(255, 255, 255, 0.15);
     border-radius: 8px;
-    color: white;
+    color: #ffffff;
 }
 
 input[type="submit"] {
@@ -140,17 +138,20 @@ input[type="submit"]:hover {
     text-align: center;
     width: 90%;
     max-width: 600px;
+    color: #f0f0f0;
 }
 
 .hero h1 {
     font-family: 'Orbitron', sans-serif;
     font-size: 3em;
     margin-bottom: 10px;
+    color: #fff;
+    text-shadow: 2px 2px 6px rgba(0, 0, 0, 0.7);
 }
 
 .hero p {
     font-size: 1.2em;
-    color: #ccc;   
+    color: #ccc;
     margin-bottom: 30px;
 }
 
@@ -165,4 +166,28 @@ input[type="submit"]:hover {
     font-weight: bold;
     box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
     transition: all 0.3s ease;
+}
+
+/* Table Styling */
+table {
+    color: #ffffff;
+}
+
+.table-dark th,
+.table-dark td {
+    background-color: #2a2a3d;
+    border-color: rgba(255, 255, 255, 0.1);
+}
+
+/* Modal */
+.modal-content {
+    background-color: #1e1e2f;
+    color: #f8f8f8;
+    text-shadow: 1px 1px 2px rgba(0,0,0,0.4);
+}
+
+/* Optional utility class */
+.high-contrast-text {
+    color: #fff !important;
+    text-shadow: 0 0 4px rgba(0,0,0,0.7);
 }
