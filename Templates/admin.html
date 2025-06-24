@@ -1,0 +1,41 @@
+{% extends 'base.html' %}
+{% block title %}Admin Dashboard{% endblock %}
+
+{% block content %}
+<div class="container">
+    <h1 class="text-center">Welcome, Admin</h1>
+    <p class="text-center">Use the buttons below to manage your system:</p>
+
+    <div class="admin-options">
+        <a href="{{ url_for('view_users') }}" class="btn">👥 View All Users</a>
+        <a href="{{ url_for('qr_page') }}" class="btn">📲 QR Code</a>
+        <a href="{{ url_for('logout') }}" class="btn">🚪 Logout</a>
+    </div>
+</div>
+
+<style>
+.admin-options {
+    display: flex;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 20px;
+    margin-top: 30px;
+}
+
+.admin-options .btn {
+    background: linear-gradient(45deg, #00c6ff, #0072ff);
+    color: white;
+    padding: 12px 24px;
+    border-radius: 10px;
+    font-weight: bold;
+    text-decoration: none;
+    transition: transform 0.3s ease;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+}
+
+.admin-options .btn:hover {
+    transform: scale(1.05);
+    background: linear-gradient(45deg, #0072ff, #00c6ff);
+}
+</style>
+{% endblock %}

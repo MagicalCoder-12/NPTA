@@ -1,0 +1,960 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Name Place Thing Animal Game</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            text-align: center;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            margin: 0;
+            padding: 20px;
+            min-height: 100vh;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        #setup, #gameContainer, #leaderboardContainer, #resultContainer, #playerNamesContainer {
+            margin: 20px auto;
+            padding: 30px;
+            background: rgba(255, 255, 255, 0.95);
+            color: #333;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            backdrop-filter: blur(10px);
+            width: 90%;
+            max-width: 900px;
+            animation: fadeIn 0.5s ease-in;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .hidden {
+            display: none;
+        }
+        .correct { 
+            color: #27ae60; 
+            font-weight: bold;
+            animation: correctFlash 0.5s ease-in;
+        }
+        .incorrect { 
+            color: #e74c3c; 
+            font-weight: bold;
+            animation: incorrectShake 0.5s ease-in;
+        }
+        .duplicate {
+            color: #f39c12;
+            font-weight: bold;
+        }
+        @keyframes correctFlash {
+            0%, 50%, 100% { opacity: 1; }
+            25%, 75% { opacity: 0.5; }
+        }
+        @keyframes incorrectShake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-5px); }
+            75% { transform: translateX(5px); }
+        }
+        .button {
+            background: linear-gradient(45deg, #ff6b6b, #ffa500);
+            border: none;
+            padding: 15px 30px;
+            font-size: 18px;
+            cursor: pointer;
+            margin: 15px 10px;
+            border-radius: 25px;
+            transition: all 0.3s ease;
+            font-weight: bold;
+            color: white;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+        }
+        .button:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+        }
+        .button:disabled {
+            background: #bdc3c7;
+            cursor: not-allowed;
+            transform: none;
+        }
+        .timer {
+            font-size: 36px;
+            font-weight: bold;
+            margin: 20px 0;
+            color: #e74c3c;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+            animation: pulse 1s infinite;
+        }
+        .timer.warning {
+            color: #ff4757;
+            animation: urgentPulse 0.5s infinite;
+        }
+        @keyframes urgentPulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+        }
+        table {
+            width: 100%;
+            margin: 20px 0;
+            border-collapse: collapse;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+        th, td {
+            padding: 15px 10px;
+            border: none;
+            text-align: center;
+        }
+        th {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        tr:nth-child(even) {
+            background-color: #f8f9fa;
+        }
+        tr:hover {
+            background-color: #e9ecef;
+            transform: scale(1.02);
+            transition: all 0.2s ease;
+        }
+        input[type="text"], input[type="number"], select {
+            padding: 12px 15px;
+            margin: 8px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            font-size: 16px;
+            width: 80%;
+            max-width: 300px;
+            transition: all 0.3s ease;
+        }
+        input:focus, select:focus {
+            border-color: #667eea;
+            outline: none;
+            box-shadow: 0 0 10px rgba(102, 126, 234, 0.3);
+        }
+        h1 {
+            margin-bottom: 30px;
+            font-size: 3em;
+            text-shadow: 2px 2px 8px rgba(0, 0, 0, 0.3);
+            background: linear-gradient(45deg, #ff6b6b, #ffa500);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        h2 {
+            color: #667eea;
+            margin-top: 0;
+            margin-bottom: 20px;
+        }
+        .player-inputs {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 20px;
+            margin: 30px 0;
+        }
+        .player-input {
+            padding: 20px;
+            background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+            border-radius: 15px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+            transition: transform 0.3s ease;
+        }
+        .player-input:hover {
+            transform: translateY(-2px);
+        }
+        .player-name {
+            font-weight: bold;
+            margin-bottom: 15px;
+            color: #667eea;
+            font-size: 18px;
+        }
+        .category {
+            margin: 10px 0;
+        }
+        .category label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 5px;
+            color: #2c3e50;
+        }
+        .category input {
+            width: 100%;
+            margin: 0;
+        }
+        .letter-display {
+            font-size: 80px;
+            font-weight: bold;
+            color: #e74c3c;
+            margin: 30px 0;
+            text-shadow: 3px 3px 6px rgba(0, 0, 0, 0.3);
+            animation: letterBounce 2s ease-in-out;
+        }
+        @keyframes letterBounce {
+            0%, 20%, 50%, 80%, 100% { transform: translateY(0); }
+            40% { transform: translateY(-20px); }
+            60% { transform: translateY(-10px); }
+        }
+        .score-display {
+            font-size: 24px;
+            margin: 10px 0;
+            font-weight: bold;
+        }
+        .winner-display {
+            font-size: 36px;
+            color: #27ae60;
+            font-weight: bold;
+            margin: 30px 0;
+            animation: winnerPulse 1.5s infinite;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2);
+        }
+        @keyframes winnerPulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); }
+        }
+        .validation-status {
+            font-size: 12px;
+            margin-top: 5px;
+            font-weight: bold;
+        }
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: #e0e0e0;
+            border-radius: 4px;
+            margin: 20px 0;
+            overflow: hidden;
+        }
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(45deg, #27ae60, #2ecc71);
+            transition: width 0.3s ease;
+        }
+        .game-stats {
+            display: flex;
+            justify-content: space-around;
+            margin: 20px 0;
+            padding: 15px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+        }
+        .stat {
+            text-align: center;
+        }
+        .stat-value {
+            font-size: 24px;
+            font-weight: bold;
+            color: #667eea;
+        }
+        .stat-label {
+            font-size: 14px;
+            color: #7f8c8d;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎯 Name Place Thing Animal Game</h1>
+        
+        <!-- Setup Screen -->
+        <div id="setup">
+            <h2>🎮 Game Setup</h2>
+            <div style="margin: 20px 0;">
+                <label>🎲 Number of Rounds: 
+                    <input type="number" id="numRounds" min="3" max="15" value="5">
+                </label>
+            </div>
+            <div style="margin: 20px 0;">
+                <label>⏱️ Time per Round (seconds): 
+                    <input type="number" id="timePerRound" min="30" max="120" value="60">
+                </label>
+            </div>
+            <div style="margin: 20px 0;">
+                <label>👥 Number of Players (2-8): 
+                    <input type="number" id="numPlayers" min="2" max="8" value="2">
+                </label>
+            </div>
+            <div style="margin: 20px 0;">
+                <label>🔤 Letter Selection: 
+                    <select id="letterMode">
+                        <option value="random">Random Letters</option>
+                        <option value="sequential">Sequential (A-Z)</option>
+                        <option value="custom">Custom Letters</option>
+                    </select>
+                </label>
+            </div>
+            <div id="customLetters" class="hidden" style="margin: 20px 0;">
+                <label>Enter letters (comma separated): 
+                    <input type="text" id="customLetterInput" placeholder="A,B,C,D,E">
+                </label>
+            </div>
+            <button class="button" onclick="showPlayerNames()">Continue ➡️</button>
+        </div>
+
+        <!-- Player Names Screen -->
+        <div id="playerNamesContainer" class="hidden">
+            <h2>👤 Enter Player Names</h2>
+            <div id="playerNamesInputs"></div>
+            <button class="button" onclick="startGame()">Start Game! 🚀</button>
+        </div>
+
+        <!-- Game Screen -->
+        <div id="gameContainer" class="hidden">
+            <div class="game-stats">
+                <div class="stat">
+                    <div class="stat-value" id="currentRoundStat">1</div>
+                    <div class="stat-label">Round</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-value" id="totalRoundsStat">5</div>
+                    <div class="stat-label">Total</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-value" id="timerStat">60</div>
+                    <div class="stat-label">Seconds</div>
+                </div>
+            </div>
+            
+            <div class="progress-bar">
+                <div class="progress-fill" id="progressFill" style="width: 20%"></div>
+            </div>
+            
+            <div class="letter-display" id="currentLetter">A</div>
+            
+            <div class="player-inputs" id="playerInputsContainer">
+                <!-- Player inputs will be generated here -->
+            </div>
+            
+            <button class="button" id="submitButton" onclick="submitRound()">Submit Answers ✅</button>
+            <button class="button" onclick="skipRound()" style="background: linear-gradient(45deg, #95a5a6, #7f8c8d);">Skip Round ⏭️</button>
+        </div>
+
+        <!-- Leaderboard Screen -->
+        <div id="leaderboardContainer" class="hidden">
+            <h2>📊 Round <span id="roundNumberResults">1</span> Results</h2>
+            <div id="roundLetterDisplay" class="letter-display">A</div>
+            
+            <table id="resultsTable">
+                <thead>
+                    <tr>
+                        <th>👤 Player</th>
+                        <th>👤 Name</th>
+                        <th>🏙️ Place</th>
+                        <th>📦 Thing</th>
+                        <th>🐱 Animal</th>
+                        <th>🎯 Round Score</th>
+                        <th>🏆 Total Score</th>
+                    </tr>
+                </thead>
+                <tbody id="leaderboard">
+                    <!-- Leaderboard will be generated here -->
+                </tbody>
+            </table>
+            
+            <button class="button" onclick="nextRound()">Next Round ➡️</button>
+        </div>
+
+        <!-- Final Results Screen -->
+        <div id="resultContainer" class="hidden">
+            <h2>🎉 Game Over!</h2>
+            <div id="winnerAnnouncement" class="winner-display"></div>
+            
+            <h3>🏆 Final Leaderboard</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>🏅 Rank</th>
+                        <th>👤 Player</th>
+                        <th>🎯 Total Score</th>
+                        <th>📊 Average per Round</th>
+                    </tr>
+                </thead>
+                <tbody id="finalScores">
+                    <!-- Final scores will be generated here -->
+                </tbody>
+            </table>
+            
+            <div class="game-stats">
+                <div class="stat">
+                    <div class="stat-value" id="totalWordsSubmitted">0</div>
+                    <div class="stat-label">Words Submitted</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-value" id="validWordsCount">0</div>
+                    <div class="stat-label">Valid Words</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-value" id="accuracyRate">0%</div>
+                    <div class="stat-label">Accuracy</div>
+                </div>
+            </div>
+            
+            <button class="button" onclick="restartGame()">Play Again! 🔄</button>
+        </div>
+    </div>
+
+    <script>
+        // Game state variables
+        let gameState = {
+            players: [],
+            currentRound: 1,
+            totalRounds: 5,
+            timePerRound: 60,
+            currentLetter: '',
+            letters: [],
+            letterMode: 'random',
+            timer: null,
+            timeLeft: 60,
+            roundAnswers: {},
+            gameStats: {
+                totalWords: 0,
+                validWords: 0,
+                duplicates: 0
+            }
+        };
+
+        // Built-in validation data
+        const validationData = {
+            names: [
+                'alex', 'alice', 'andrew', 'anna', 'anthony', 'antonio', 'arthur', 'adam', 'aaron', 'abraham',
+                'ben', 'bob', 'brian', 'bruce', 'bill', 'betty', 'barbara', 'brenda', 'beverly', 'bonnie',
+                'chris', 'charles', 'carol', 'christina', 'christine', 'catherine', 'charlotte', 'cheryl', 'cynthia', 'clara',
+                'david', 'daniel', 'donald', 'deborah', 'donna', 'dorothy', 'diana', 'denise', 'diane', 'doris',
+                'edward', 'eric', 'eugene', 'elizabeth', 'emily', 'emma', 'evelyn', 'ethel', 'edna', 'eleanor',
+                'frank', 'fred', 'francis', 'florence', 'frances', 'faith', 'felicia', 'fiona', 'felix', 'fernando',
+                'george', 'gary', 'gregory', 'gloria', 'grace', 'geraldine', 'gina', 'gail', 'gabrielle', 'gerald',
+                'henry', 'harold', 'howard', 'helen', 'heather', 'hannah', 'holly', 'hope', 'hazel', 'hilda',
+                'ivan', 'isaac', 'ian', 'irene', 'irma', 'iris', 'isabel', 'ingrid', 'india', 'ian',
+                'james', 'john', 'joseph', 'jennifer', 'jessica', 'janet', 'joyce', 'julie', 'jane', 'jean',
+                'kevin', 'kenneth', 'keith', 'karen', 'kimberly', 'kathleen', 'kelly', 'kathryn', 'kristin', 'kyle',
+                'larry', 'louis', 'lawrence', 'linda', 'lisa', 'laura', 'lori', 'lynn', 'lois', 'louise',
+                'michael', 'mark', 'matthew', 'mary', 'maria', 'margaret', 'michelle', 'melissa', 'marie', 'martha',
+                'nicholas', 'neil', 'nathan', 'nancy', 'nicole', 'norma', 'nina', 'nora', 'natalie', 'naomi',
+                'oscar', 'oliver', 'owen', 'olivia', 'olga', 'opal', 'ophelia', 'octavia', 'odette', 'omar',
+                'paul', 'peter', 'patrick', 'patricia', 'pamela', 'paula', 'phyllis', 'priscilla', 'penny', 'pearl',
+                'quincy', 'quentin', 'quinn', 'queenie', 'quinta', 'quiana', 'qualyn', 'quartz', 'queen', 'quill',
+                'robert', 'richard', 'ronald', 'ruth', 'rose', 'rebecca', 'rachel', 'robin', 'ruby', 'rita',
+                'steven', 'stephen', 'scott', 'susan', 'sarah', 'sandra', 'sharon', 'stephanie', 'samantha', 'sara',
+                'thomas', 'timothy', 'tony', 'teresa', 'tammy', 'tina', 'theresa', 'tracy', 'tiffany', 'terry',
+                'victor', 'vincent', 'vernon', 'virginia', 'valerie', 'victoria', 'vivian', 'velma', 'vera', 'violet',
+                'william', 'walter', 'wayne', 'wanda', 'wendy', 'wilma', 'whitney', 'winnie', 'wade', 'wallace',
+                'xavier', 'xander', 'ximena', 'xenia', 'xara', 'xerxes', 'xyla', 'xylia', 'xzavier', 'xanthe',
+                'yusuf', 'yolanda', 'yvonne', 'yasmin', 'yara', 'yael', 'yale', 'yates', 'yuki', 'yves',
+                'zachary', 'zoe', 'zelda', 'zara', 'zeus', 'zion', 'zina', 'zelma', 'zach', 'zoey'
+            ],
+            places: [
+                'africa', 'alaska', 'albania', 'algeria', 'argentina', 'armenia', 'australia', 'austria', 'arizona', 'atlanta',
+                'brazil', 'britain', 'belgium', 'bangladesh', 'bolivia', 'botswana', 'boston', 'berlin', 'bangkok', 'beijing',
+                'canada', 'china', 'chile', 'colombia', 'cuba', 'croatia', 'cyprus', 'chicago', 'california', 'cairo',
+                'denmark', 'dubai', 'dublin', 'delhi', 'detroit', 'dallas', 'damascus', 'darwin', 'dover', 'durban',
+                'egypt', 'england', 'estonia', 'ethiopia', 'ecuador', 'europe', 'edinburgh', 'el salvador', 'east timor', 'eritrea',
+                'france', 'finland', 'fiji', 'florida', 'florence', 'frankfurt', 'fresno', 'fort worth', 'fairbanks', 'fargo',
+                'germany', 'greece', 'guatemala', 'georgia', 'ghana', 'greenland', 'geneva', 'glasgow', 'gibraltar', 'galway',
+                'hungary', 'hawaii', 'honduras', 'haiti', 'houston', 'helsinki', 'hong kong', 'hanoi', 'havana', 'harare',
+                'india', 'italy', 'ireland', 'iceland', 'israel', 'indonesia', 'iran', 'iraq', 'illinois', 'iowa',
+                'japan', 'jordan', 'jamaica', 'jakarta', 'johannesburg', 'jerusalem', 'jacksonville', 'jersey', 'jaipur', 'juneau',
+                'kenya', 'korea', 'kuwait', 'kazakhstan', 'karachi', 'kathmandu', 'kiev', 'kansas', 'kentucky', 'kingston',
+                'libya', 'lebanon', 'laos', 'lithuania', 'latvia', 'luxembourg', 'london', 'los angeles', 'lisbon', 'lima',
+                'mexico', 'morocco', 'malta', 'malaysia', 'mongolia', 'madagascar', 'miami', 'madrid', 'melbourne', 'moscow',
+                'norway', 'nepal', 'netherlands', 'nigeria', 'nicaragua', 'niger', 'new york', 'nashville', 'nairobi', 'nagoya',
+                'oman', 'oregon', 'ohio', 'oklahoma', 'ontario', 'oxford', 'orlando', 'osaka', 'ottawa', 'odessa',
+                'poland', 'portugal', 'peru', 'pakistan', 'philippines', 'palestine', 'paris', 'phoenix', 'philadelphia', 'prague',
+                'qatar', 'quebec', 'queensland', 'quito', 'quincy', 'qingdao', 'qom', 'queenstown', 'querétaro', 'quilmes',
+                'russia', 'romania', 'rwanda', 'rome', 'rio', 'riyadh', 'rochester', 'raleigh', 'richmond', 'reykjavik',
+                'spain', 'sweden', 'switzerland', 'syria', 'singapore', 'serbia', 'seattle', 'san francisco', 'sydney', 'stockholm',
+                'turkey', 'thailand', 'taiwan', 'tunisia', 'tanzania', 'togo', 'tokyo', 'toronto', 'texas', 'tennessee',
+                'ukraine', 'uganda', 'uruguay', 'uzbekistan', 'utah', 'united kingdom', 'united states', 'ulaanbaatar', 'utrecht', 'ulsan',
+                'venezuela', 'vietnam', 'vatican', 'virginia', 'vermont', 'venice', 'vienna', 'vancouver', 'valencia', 'valletta',
+                'wales', 'washington', 'wisconsin', 'wyoming', 'warsaw', 'wellington', 'wuhan', 'wichita', 'wilmington', 'winnipeg',
+                'yemen', 'yugoslavia', 'yukon', 'yerevan', 'yokohama', 'yalta', 'yaounde', 'yangon', 'yekaterinburg', 'yonkers',
+                'zimbabwe', 'zambia', 'zanzibar', 'zurich', 'zagreb', 'zaragoza', 'zhengzhou', 'zion', 'zürich', 'zaire'
+            ],
+            things: [
+                'apple', 'airplane', 'axe', 'anchor', 'arrow', 'automobile', 'accordion', 'ambulance', 'ant', 'apron',
+                'ball', 'book', 'bicycle', 'bottle', 'box', 'boat', 'bridge', 'bucket', 'button', 'banana',
+                'car', 'chair', 'computer', 'camera', 'cake', 'clock', 'cup', 'candle', 'coin', 'canvas',
+                'door', 'desk', 'diamond', 'drum', 'dress', 'dog', 'dice', 'dish', 'doll', 'dart',
+                'envelope', 'egg', 'eraser', 'elephant', 'engine', 'elevator', 'earring', 'eagle', 'earth', 'easel',
+                'flower', 'fork', 'fire', 'flag', 'fish', 'fan', 'frame', 'fruit', 'fence', 'flute',
+                'guitar', 'glass', 'glove', 'gun', 'gate', 'globe', 'game', 'gold', 'gift', 'garage',
+                'house', 'hat', 'hammer', 'horse', 'helicopter', 'heart', 'hand', 'hair', 'hill', 'hole',
+                'ice', 'iron', 'ink', 'island', 'insect', 'instrument', 'invitation', 'igloo', 'icicle', 'idol',
+                'jacket', 'jar', 'jewel', 'juice', 'jet', 'jug', 'journal', 'joke', 'jazz', 'jelly',
+                'key', 'knife', 'kite', 'kitchen', 'king', 'keyboard', 'kettle', 'knee', 'knot', 'kangaroo',
+                'lamp', 'letter', 'ladder', 'lock', 'lion', 'leaf', 'library', 'lake', 'line', 'lunch',
+                'mirror', 'money', 'mouse', 'moon', 'mountain', 'music', 'machine', 'map', 'mask', 'magic',
+                'needle', 'newspaper', 'nail', 'net', 'notebook', 'number', 'nurse', 'nest', 'neck', 'night',
+                'ocean', 'orange', 'oil', 'owl', 'office', 'onion', 'opera', 'oven', 'oxygen', 'orbit',
+                'pencil', 'paper', 'phone', 'piano', 'picture', 'plant', 'plate', 'pen', 'pillow', 'pizza',
+                'queen', 'question', 'quilt', 'quarter', 'quiz', 'quote', 'quartz', 'queue', 'quiver', 'quiet',
+                'radio', 'ring', 'river', 'road', 'rock', 'rope', 'robot', 'ruler', 'rain', 'rice',
+                'sun', 'shoe', 'ship', 'star', 'stone', 'sword', 'snow', 'soup', 'song', 'smile',
+                'table', 'tree', 'train', 'telephone', 'television', 'tiger', 'turtle', 'truck', 'tower', 'toy',
+                'umbrella', 'university', 'uniform', 'unicorn', 'uncle', 'unit', 'user', 'utensil', 'usage', 'utility',
+                'violin', 'village', 'vase', 'video', 'voice', 'valley', 'vacation', 'vegetable', 'vehicle', 'victory',
+                'water', 'window', 'wall', 'watch', 'wheel', 'wood', 'wind', 'wine', 'winter', 'wolf',
+                'xylophone', 'xerox', 'x-ray', 'xbox', 'xml', 'xenon', 'xmas', 'xylem', 'xerus', 'xanthan',
+                'yacht', 'yard', 'year', 'yellow', 'yogurt', 'yolk', 'youth', 'yeast', 'yam', 'yarn',
+                'zoo', 'zebra', 'zero', 'zone', 'zip', 'zinc', 'zest', 'zigzag', 'zipper', 'zombie'
+            ],
+            animals: [
+                'ant', 'ape', 'alligator', 'antelope', 'armadillo', 'aardvark', 'albatross', 'anaconda', 'angelfish', 'alpaca',
+                'bear', 'bird', 'butterfly', 'bee', 'bat', 'buffalo', 'bull', 'baboon', 'beaver', 'badger',
+                'cat', 'cow', 'chicken', 'cheetah', 'crocodile', 'camel', 'crab', 'cricket', 'cockroach', 'cardinal',
+                'dog', 'duck', 'deer', 'dolphin', 'donkey', 'dragonfly', 'dove', 'dingo', 'dinosaur', 'dalmatian',
+                'elephant', 'eagle', 'eel', 'elk', 'emu', 'ermine', 'egret', 'earthworm', 'earwig', 'echidna',
+                'fish', 'frog', 'fox', 'falcon', 'fly', 'flamingo', 'ferret', 'finch', 'firefly', 'flounder',
+                'giraffe', 'goat', 'goose', 'gorilla', 'grasshopper', 'goldfish', 'gecko', 'gull', 'guinea pig', 'gnat',
+                'horse', 'hamster', 'hippopotamus', 'hawk', 'hummingbird', 'hedgehog', 'hyena', 'heron', 'hornbill', 'hammerhead',
+                'iguana', 'insect', 'impala', 'ibis', 'ichneumon', 'inchworm', 'indri', 'ibex', 'igloo worm', 'ivory gull',
+                'jaguar', 'jellyfish', 'jackal', 'jay', 'jackrabbit', 'joey', 'junco', 'jabiru', 'jaguarundi', 'jerboa',
+                'kangaroo', 'koala', 'kiwi', 'kingfisher', 'kestrel', 'kudu', 'krill', 'katydid', 'koi', 'killer whale',
+                'lion', 'lamb', 'lizard', 'llama', 'lobster', 'leopard', 'lynx', 'ladybug', 'lemur', 'lark',
+                'monkey', 'mouse', 'moose', 'mosquito', 'moth', 'mole', 'mantis', 'manta ray', 'magpie', 'meerkat',
+                'newt', 'nightingale', 'narwhal', 'numbat', 'nutria', 'nighthawk', 'nuthatch', 'nautilus', 'nurse shark', 'nematode',
+                'owl', 'octopus', 'otter', 'ostrich', 'ox', 'orangutan', 'ocelot', 'oyster', 'oriole', 'opossum',
+                'pig', 'penguin', 'parrot', 'panda', 'peacock', 'pelican', 'pigeon', 'python', 'polar bear', 'porcupine',
+                'quail', 'quetzal', 'queen bee', 'quokka', 'quelea', 'quinzhee', 'quoll', 'queen ant', 'quahog', 'queen snake',
+                'rabbit', 'rat', 'robin', 'rhinoceros', 'rooster', 'raccoon', 'raven', 'reindeer', 'ram', 'ray',
+                'snake', 'sheep', 'shark', 'spider', 'squirrel', 'seal', 'swan', 'sparrow', 'starfish', 'salamander',
+                'tiger', 'turtle', 'turkey', 'toad', 'toucan', 'termite', 'trout', 'tarantula', 'tapir', 'thrush',
+                'unicorn', 'urchin', 'uakari', 'umbrella bird', 'unau', 'urubu', 'urial', 'upupa', 'ulysses butterfly', 'umbrellabird',
+                'vulture', 'viper', 'vicuña', 'vampire bat', 'vole', 'vervet', 'vicuna', 'violet snail', 'vanga', 'vireo',
+                'wolf', 'whale', 'worm', 'wasp', 'walrus', 'woodpecker', 'wombat', 'wolverine', 'weasel', 'wildebeest',
+                'xenops', 'xerus', 'xenarthra', 'xiphias', 'xylocopa', 'xantus', 'xenopus', 'xeme', 'xantusia', 'xenurus',
+                'yak', 'yellowfin', 'yabby', 'yellow jacket', 'yapok', 'yacare', 'yellow warbler', 'yellowhammer', 'yeti crab', 'yorkshire terrier',
+                'zebra', 'zebu', 'zorilla', 'zokor', 'zander', 'zenaida dove', 'zigzag salamander', 'zone-tailed hawk', 'zorro', 'zwergschnauzer'
+            ]
+        };
+
+        // Utility functions
+        function shuffleArray(array) {
+            const shuffled = [...array];
+            for (let i = shuffled.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+            }
+            return shuffled;
+        }
+
+        function generateLetters() {
+            const letterMode = document.getElementById('letterMode').value;
+            const numRounds = parseInt(document.getElementById('numRounds').value);
+            
+            if (letterMode === 'sequential') {
+                const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
+                return alphabet.slice(0, numRounds);
+            } else if (letterMode === 'custom') {
+                const customInput = document.getElementById('customLetterInput').value;
+                return customInput.split(',').map(l => l.trim().toUpperCase()).filter(l => l.length === 1);
+            } else {
+                // Random letters (avoiding difficult ones)
+                const easyLetters = 'ABCDEFGHIJKLMNOPRSTUVWXY'.split('');
+                return shuffleArray(easyLetters).slice(0, numRounds);
+            }
+        }
+
+        function validateWord(word, category, letter) {
+            if (!word || word.trim() === '') return { valid: false, reason: 'empty' };
+            
+            const cleanWord = word.toLowerCase().trim();
+            const firstLetter = cleanWord.charAt(0).toLowerCase();
+            
+            if (firstLetter !== letter.toLowerCase()) {
+                return { valid: false, reason: 'wrong_letter' };
+            }
+            
+            // Check if word exists in our validation data
+            const categoryData = validationData[category + 's'] || [];
+            const isValid = categoryData.some(validWord => 
+                validWord.toLowerCase() === cleanWord ||
+                cleanWord.includes(validWord.toLowerCase()) ||
+                validWord.toLowerCase().includes(cleanWord)
+            );
+            
+            return { valid: isValid, reason: isValid ? 'valid' : 'not_found' };
+        }
+
+        function checkDuplicates(answers, category) {
+            const categoryAnswers = answers.map(a => a[category]?.toLowerCase().trim()).filter(a => a);
+            const duplicates = new Set();
+            const seen = new Set();
+            
+            categoryAnswers.forEach(answer => {
+                if (seen.has(answer)) {
+                    duplicates.add(answer);
+                }
+                seen.add(answer);
+            });
+            
+            return duplicates;
+        }
+
+        // Setup functions
+        function showPlayerNames() {
+            const numPlayers = parseInt(document.getElementById('numPlayers').value);
+            const numRounds = parseInt(document.getElementById('numRounds').value);
+            const timePerRound = parseInt(document.getElementById('timePerRound').value);
+            const letterMode = document.getElementById('letterMode').value;
+            
+            gameState.totalRounds = numRounds;
+            gameState.timePerRound = timePerRound;
+            gameState.letterMode = letterMode;
+            gameState.letters = generateLetters();
+            
+            if (gameState.letters.length < numRounds) {
+                alert('Please provide enough letters for all rounds!');
+                return;
+            }
+            
+            document.getElementById('setup').classList.add('hidden');
+            document.getElementById('playerNamesContainer').classList.remove('hidden');
+            
+            const container = document.getElementById('playerNamesInputs');
+            container.innerHTML = '';
+            
+            for (let i = 0; i < numPlayers; i++) {
+                const div = document.createElement('div');
+                div.style.margin = '10px 0';
+                div.innerHTML = `
+                    <label>Player ${i + 1} Name: 
+                        <input type="text" id="player${i}Name" placeholder="Enter name" required>
+                    </label>
+                `;
+                container.appendChild(div);
+            }
+        }
+
+        function startGame() {
+            const numPlayers = parseInt(document.getElementById('numPlayers').value);
+            gameState.players = [];
+            
+            // Collect player names
+            for (let i = 0; i < numPlayers; i++) {
+                const name = document.getElementById(`player${i}Name`).value.trim();
+                if (!name) {
+                    alert(`Please enter a name for Player ${i + 1}`);
+                    return;
+                }
+                gameState.players.push({
+                    name: name,
+                    totalScore: 0,
+                    roundScores: []
+                });
+            }
+            
+            document.getElementById('playerNamesContainer').classList.add('hidden');
+            document.getElementById('gameContainer').classList.remove('hidden');
+            
+            startRound();
+        }
+
+        function startRound() {
+            gameState.currentLetter = gameState.letters[gameState.currentRound - 1];
+            gameState.timeLeft = gameState.timePerRound;
+            gameState.roundAnswers = {};
+            
+            // Update UI
+            document.getElementById('currentLetter').textContent = gameState.currentLetter;
+            document.getElementById('currentRoundStat').textContent = gameState.currentRound;
+            document.getElementById('totalRoundsStat').textContent = gameState.totalRounds;
+            document.getElementById('timerStat').textContent = gameState.timeLeft;
+            
+            // Update progress bar
+            const progress = (gameState.currentRound / gameState.totalRounds) * 100;
+            document.getElementById('progressFill').style.width = progress + '%';
+            
+            // Generate player inputs
+            const container = document.getElementById('playerInputsContainer');
+            container.innerHTML = '';
+            
+            gameState.players.forEach((player, index) => {
+                const div = document.createElement('div');
+                div.className = 'player-input';
+                div.innerHTML = `
+                    <div class="player-name">${player.name}</div>
+                    <div class="category">
+                        <label>👤 Name:</label>
+                        <input type="text" id="name_${index}" placeholder="Name starting with ${gameState.currentLetter}">
+                        <div class="validation-status" id="name_status_${index}"></div>
+                    </div>
+                    <div class="category">
+                        <label>🏙️ Place:</label>
+                        <input type="text" id="place_${index}" placeholder="Place starting with ${gameState.currentLetter}">
+                        <div class="validation-status" id="place_status_${index}"></div>
+                    </div>
+                    <div class="category">
+                        <label>📦 Thing:</label>
+                        <input type="text" id="thing_${index}" placeholder="Thing starting with ${gameState.currentLetter}">
+                        <div class="validation-status" id="thing_status_${index}"></div>
+                    </div>
+                    <div class="category">
+                        <label>🐱 Animal:</label>
+                        <input type="text" id="animal_${index}" placeholder="Animal starting with ${gameState.currentLetter}">
+                        <div class="validation-status" id="animal_status_${index}"></div>
+                    </div>
+                `;
+                container.appendChild(div);
+            });
+            
+            // Start timer
+            startTimer();
+            
+            // Enable submit button
+            document.getElementById('submitButton').disabled = false;
+        }
+
+        function startTimer() {
+            const timerElement = document.getElementById('timerStat');
+            
+            gameState.timer = setInterval(() => {
+                gameState.timeLeft--;
+                timerElement.textContent = gameState.timeLeft;
+                
+                if (gameState.timeLeft <= 10) {
+                    timerElement.parentElement.classList.add('warning');
+                }
+                
+                if (gameState.timeLeft <= 0) {
+                    clearInterval(gameState.timer);
+                    submitRound();
+                }
+            }, 1000);
+        }
+
+        function submitRound() {
+            clearInterval(gameState.timer);
+            document.getElementById('submitButton').disabled = true;
+            
+            // Collect answers
+            const roundData = [];
+            gameState.players.forEach((player, index) => {
+                const answers = {
+                    name: document.getElementById(`name_${index}`).value.trim(),
+                    place: document.getElementById(`place_${index}`).value.trim(),
+                    thing: document.getElementById(`thing_${index}`).value.trim(),
+                    animal: document.getElementById(`animal_${index}`).value.trim()
+                };
+                roundData.push(answers);
+            });
+            
+            // Validate answers and calculate scores
+            const categories = ['name', 'place', 'thing', 'animal'];
+            const duplicates = {};
+            
+            categories.forEach(category => {
+                duplicates[category] = checkDuplicates(roundData, category);
+            });
+            
+            gameState.players.forEach((player, index) => {
+                let roundScore = 0;
+                const playerAnswers = roundData[index];
+                const validationResults = {};
+                
+                categories.forEach(category => {
+                    const word = playerAnswers[category];
+                    gameState.gameStats.totalWords++;
+                    
+                    if (word) {
+                        const validation = validateWord(word, category, gameState.currentLetter);
+                        const isDuplicate = duplicates[category].has(word.toLowerCase().trim());
+                        
+                        if (validation.valid && !isDuplicate) {
+                            roundScore += 10;
+                            gameState.gameStats.validWords++;
+                            validationResults[category] = 'correct';
+                        } else if (isDuplicate) {
+                            roundScore += 5; // Half points for duplicates
+                            gameState.gameStats.duplicates++;
+                            validationResults[category] = 'duplicate';
+                        } else {
+                            validationResults[category] = 'incorrect';
+                        }
+                    } else {
+                        validationResults[category] = 'empty';
+                    }
+                });
+                
+                player.roundScores.push({
+                    round: gameState.currentRound,
+                    score: roundScore,
+                    answers: playerAnswers,
+                    validation: validationResults
+                });
+                player.totalScore += roundScore;
+            });
+            
+            showResults();
+        }
+
+        function skipRound() {
+            clearInterval(gameState.timer);
+            
+            // Give 0 scores for this round
+            gameState.players.forEach(player => {
+                player.roundScores.push({
+                    round: gameState.currentRound,
+                    score: 0,
+                    answers: { name: '', place: '', thing: '', animal: '' },
+                    validation: { name: 'empty', place: 'empty', thing: 'empty', animal: 'empty' }
+                });
+            });
+            
+            showResults();
+        }
+
+        function showResults() {
+            document.getElementById('gameContainer').classList.add('hidden');
+            document.getElementById('leaderboardContainer').classList.remove('hidden');
+            
+            document.getElementById('roundNumberResults').textContent = gameState.currentRound;
+            document.getElementById('roundLetterDisplay').textContent = gameState.currentLetter;
+            
+            // Sort players by total score for display
+            const sortedPlayers = [...gameState.players].sort((a, b) => b.totalScore - a.totalScore);
+            
+            const tbody = document.getElementById('leaderboard');
+            tbody.innerHTML = '';
+            
+            sortedPlayers.forEach(player => {
+                const currentRoundData = player.roundScores[gameState.currentRound - 1];
+                const row = document.createElement('tr');
+                
+                const getStatusClass = (category) => {
+                    const status = currentRoundData.validation[category];
+                    return status === 'correct' ? 'correct' : 
+                           status === 'duplicate' ? 'duplicate' : 
+                           status === 'incorrect' ? 'incorrect' : '';
+                };
+                
+                row.innerHTML = `
+                    <td><strong>${player.name}</strong></td>
+                    <td class="${getStatusClass('name')}">${currentRoundData.answers.name || '-'}</td>
+                    <td class="${getStatusClass('place')}">${currentRoundData.answers.place || '-'}</td>
+                    <td class="${getStatusClass('thing')}">${currentRoundData.answers.thing || '-'}</td>
+                    <td class="${getStatusClass('animal')}">${currentRoundData.answers.animal || '-'}</td>
+                    <td><strong>${currentRoundData.score}</strong></td>
+                    <td><strong>${player.totalScore}</strong></td>
+                `;
+                tbody.appendChild(row);
+            });
+        }
+
+        function nextRound() {
+            if (gameState.currentRound >= gameState.totalRounds) {
+                showFinalResults();
+            } else {
+                gameState.currentRound++;
+                document.getElementById('leaderboardContainer').classList.add('hidden');
+                document.getElementById('gameContainer').classList.remove('hidden');
+                startRound();
+            }
+        }
+
+        function showFinalResults() {
+            document.getElementById('leaderboardContainer').classList.add('hidden');
+            document.getElementById('resultContainer').classList.remove('hidden');
+            
+            // Sort players by total score
+            const sortedPlayers = [...gameState.players].sort((a, b) => b.totalScore - a.totalScore);
+            const winner = sortedPlayers[0];
+            
+            // Show winner
+            document.getElementById('winnerAnnouncement').innerHTML = 
+                `🎉 ${winner.name} Wins! 🎉<br>Final Score: ${winner.totalScore} points`;
+            
+            // Show final leaderboard
+            const tbody = document.getElementById('finalScores');
+            tbody.innerHTML = '';
+            
+            sortedPlayers.forEach((player, index) => {
+                const row = document.createElement('tr');
+                const avgScore = (player.totalScore / gameState.totalRounds).toFixed(1);
+                
+                let rankEmoji = '';
+                if (index === 0) rankEmoji = '🥇';
+                else if (index === 1) rankEmoji = '🥈';
+                else if (index === 2) rankEmoji = '🥉';
+                else rankEmoji = `${index + 1}`;
+                
+                row.innerHTML = `
+                    <td><strong>${rankEmoji}</strong></td>
+                    <td><strong>${player.name}</strong></td>
+                    <td><strong>${player.totalScore}</strong></td>
+                    <td>${avgScore}</td>
+                `;
+                tbody.appendChild(row);
+            });
+            
+            // Show game statistics
+            const accuracy = gameState.gameStats.totalWords > 0 ? 
+                Math.round((gameState.gameStats.validWords / gameState.gameStats.totalWords) * 100) : 0;
+            
+            document.getElementById('totalWordsSubmitted').textContent = gameState.gameStats.totalWords;
+            document.getElementById('validWordsCount').textContent = gameState.gameStats.validWords;
+            document.getElementById('accuracyRate').textContent = accuracy + '%';
+        }
+
+        function restartGame() {
+            // Reset game state
+            gameState = {
+                players: [],
+                currentRound: 1,
+                totalRounds: 5,
+                timePerRound: 60,
+                currentLetter: '',
+                letters: [],
+                letterMode: 'random',
+                timer: null,
+                timeLeft: 60,
+                roundAnswers: {},
+                gameStats: {
+                    totalWords: 0,
+                    validWords: 0,
+                    duplicates: 0
+                }
+            };
+            
+            // Show setup screen
+            document.getElementById('resultContainer').classList.add('hidden');
+            document.getElementById('setup').classList.remove('hidden');
+            
+            // Reset form values
+            document.getElementById('numRounds').value = 5;
+            document.getElementById('timePerRound').value = 60;
+            document.getElementById('numPlayers').value = 2;
+            document.getElementById('letterMode').value = 'random';
+            document.getElementById('customLetters').classList.add('hidden');
+        }
+
+        // Event listeners
+        document.getElementById('letterMode').addEventListener('change', function() {
+            const customDiv = document.getElementById('customLetters');
+            if (this.value === 'custom') {
+                customDiv.classList.remove('hidden');
+            } else {
+                customDiv.classList.add('hidden');
+            }
+        });
+
+        // Initialize game
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('🎮 Name Place Thing Animal Game Loaded!');
+            console.log('📊 Built-in validation data loaded:');
+            console.log(`- Names: ${validationData.names.length}`);
+            console.log(`- Places: ${validationData.places.length}`);
+            console.log(`- Things: ${validationData.things.length}`);
+            console.log(`- Animals: ${validationData.animals.length}`);
+        });
+    </script>
+</body>
+</html>

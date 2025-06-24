@@ -1,0 +1,12 @@
+{% extends 'base.html' %}
+{% block title %}Your QR Code{% endblock %}
+
+{% block content %}
+<div class="container" style="text-align: center;">
+    <h1>Your QR Code</h1>
+    <p>Scan this to visit the site on mobile</p>
+    <img src="{{ url_for('generate_qr') }}" alt="QR Code" style="margin: 20px 0; width: 220px; height: 220px; box-shadow: 0 4px 20px rgba(0,0,0,0.5);">
+    <br>
+    <a href="{{ url_for('generate_qr') }}" class="btn" download="website_qr.png">Download QR Code</a>
+</div>
+{% endblock %}

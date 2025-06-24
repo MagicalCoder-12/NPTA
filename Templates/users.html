@@ -1,0 +1,557 @@
+{% extends 'base.html' %}
+{% block title %}User Management{% endblock %}
+
+{% block head %}
+
+<style>
+    body {
+        background-color: #1a1a1a;
+        color: white;
+    }
+    .table-dark {
+        background-color: #2d2d2d;
+    }
+    
+    /* Modal styling */
+    .modal-content {
+        background-color: white !important;
+        color: #333 !important;
+    }
+    
+    .modal-content .form-control {
+        background-color: #f8f9fa;
+        border-color: #ced4da;
+        color: #495057;
+    }
+    
+    .modal-content .form-control:focus {
+        background-color: white;
+        border-color: #86b7fe;
+        box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+    }
+    
+    .modal-content .form-select {
+        background-color: #f8f9fa;
+        border-color: #ced4da;
+        color: #495057;
+    }
+    
+    .modal-content .btn-close {
+        filter: none;
+        opacity: 1;
+    }
+    
+    .modal-content .modal-title,
+    .modal-content .form-label,
+    .modal-content .invalid-feedback {
+        color: #333;
+    }
+    
+    .modal-content .btn:hover {
+        opacity: 0.9;
+    }
+    
+    /* General styling */
+    .btn, .form-check-label, .btn-close {
+        cursor: pointer;
+    }
+    
+    .form-control {
+        background-color: #3d3d3d;
+        border-color: #555;
+        color: white;
+    }
+    
+    .form-control:focus {
+        background-color: #3d3d3d;
+        border-color: #007bff;
+        color: white;
+        box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+    }
+    
+    .form-select {
+        background-color: #3d3d3d;
+        border-color: #555;
+        color: white;
+    }
+    
+    .alert {
+        margin-top: 10px;
+    }
+    
+    .loading {
+        opacity: 0.6;
+        pointer-events: none;
+    }
+    
+    .status-indicator {
+        display: inline-block;
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        margin-right: 5px;
+    }
+    
+    .status-success { background-color: #28a745; }
+    .status-error { background-color: #dc3545; }
+    .status-warning { background-color: #ffc107; }
+    
+    /* Draggable modal header */
+    .modal-header {
+        cursor: move;
+    }
+    
+    /* Disable text selection on draggable elements */
+    .modal-header, .modal-title {
+        user-select: none;
+        -webkit-user-select: none;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <h1 class="mb-4 text-center">User Management Panel</h1>
+    
+    <!-- Status Alert -->
+    <div id="statusAlert" class="alert alert-dismissible fade" role="alert" style="display: none;">
+        <span id="statusMessage"></span>
+        <button type="button" class="btn-close btn-close-white" onclick="hideAlert()"></button>
+    </div>
+    
+    <input type="text" id="searchInput" class="form-control mb-3" placeholder="Search by username or email...">
+
+    <table class="table table-dark table-bordered">
+        <thead>
+            <tr>
+                <th>Status</th>
+                <th>Username</th>
+                <th>Email</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody id="userTable">
+            {% for user in users %}
+            <tr data-username="{{ user.username }}" id="user-row-{{ user.username }}">
+                <td><span class="status-indicator status-success" id="status-{{ user.username }}"></span></td>
+                <td class="username-cell">{{ user.username }}</td>
+                <td class="email-cell">{{ user.email }}</td>
+                <td>
+                    <button class="btn btn-sm btn-info me-1 edit-btn" 
+                            data-username="{{ user.username }}" 
+                            data-email="{{ user.email }}">
+                        Edit
+                    </button>
+                    <button class="btn btn-sm btn-danger me-1 delete-btn" 
+                            data-username="{{ user.username }}">
+                        Delete
+                    </button>
+                    <button class="btn btn-sm btn-warning recover-btn" 
+                            data-username="{{ user.username }}">
+                        Recover
+                    </button>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<!-- Edit Modal -->
+<div class="modal fade" id="editModal" tabindex="-1" aria-labelledby="editModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="editModalLabel">Edit User</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="editForm">
+                    <input type="hidden" id="editUsername">
+                    <div class="mb-3">
+                        <label for="editEmail" class="form-label">Email Address:</label>
+                        <input type="email" id="editEmail" class="form-control" required>
+                        <div class="invalid-feedback">Please enter a valid email address.</div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="editRole" class="form-label">Role (Optional):</label>
+                        <select id="editRole" class="form-select">
+                            <option value="">Select Role</option>
+                            <option value="user">User</option>
+                            <option value="admin">Admin</option>
+                            <option value="moderator">Moderator</option>
+                        </select>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-success" id="saveEditBtn">
+                    <span class="spinner-border spinner-border-sm me-2 d-none" role="status"></span>
+                    Save Changes
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Recover Modal -->
+<div class="modal fade" id="recoverModal" tabindex="-1" aria-labelledby="recoverModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content bg-dark text-white">
+            <div class="modal-header">
+                <h5 class="modal-title" id="recoverModalLabel">Reset Password</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="recoverForm">
+                    <input type="hidden" id="recoverUsername">
+                    <div class="mb-3">
+                        <label for="recoverPassword" class="form-label">New Password:</label>
+                        <input type="password" id="recoverPassword" class="form-control" required minlength="6">
+                        <div class="form-text">Password must be at least 6 characters long.</div>
+                        <div class="invalid-feedback">Password must be at least 6 characters long.</div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="confirmPassword" class="form-label">Confirm Password:</label>
+                        <input type="password" id="confirmPassword" class="form-control" required>
+                        <div class="invalid-feedback">Passwords do not match.</div>
+                    </div>
+                    <div class="mb-3 form-check">
+                        <input type="checkbox" class="form-check-input" id="sendEmailNotification">
+                        <label class="form-check-label" for="sendEmailNotification">
+                            Send email notification to user
+                        </label>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-warning" id="saveRecoverBtn">
+                    <span class="spinner-border spinner-border-sm me-2 d-none" role="status"></span>
+                    Reset Password
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+class UserManagement {
+    constructor() {
+        this.init();
+    }
+
+    init() {
+        console.log('UserManagement initialized');
+        this.bindEvents();
+        this.initializeSearch();
+        this.checkDependencies();
+    }
+
+    checkDependencies() {
+        console.log('jQuery available:', typeof $ !== 'undefined');
+        console.log('Bootstrap available:', typeof bootstrap !== 'undefined');
+        if (typeof $ !== 'undefined') {
+            console.log('jQuery version:', $.fn.jquery);
+        }
+    }
+
+    bindEvents() {
+        // Use event delegation for dynamically added elements
+        $(document).on('click', '.edit-btn', (e) => {
+            const btn = $(e.currentTarget);
+            this.prepareEdit(btn.data('username'), btn.data('email'));
+        });
+
+        $(document).on('click', '.delete-btn', (e) => {
+            const btn = $(e.currentTarget);
+            this.deleteUser(btn.data('username'));
+        });
+
+        $(document).on('click', '.recover-btn', (e) => {
+            const btn = $(e.currentTarget);
+            this.prepareRecover(btn.data('username'));
+        });
+
+        // Modal form submissions
+        $('#saveEditBtn').on('click', () => this.submitEdit());
+        $('#saveRecoverBtn').on('click', () => this.submitRecovery());
+
+        // Form validation
+        $('#editEmail').on('input', this.validateEmail);
+        $('#recoverPassword, #confirmPassword').on('input', this.validatePasswords);
+
+        // Modal events
+        $('#editModal').on('shown.bs.modal', () => {
+            $('#editEmail').focus();
+        });
+
+        $('#recoverModal').on('shown.bs.modal', () => {
+            $('#recoverPassword').focus();
+        });
+
+        // Enable mouse interaction with form elements
+        $('.modal-content').on('mousedown', function(e) {
+            e.stopPropagation();
+        });
+    }
+
+    initializeSearch() {
+        $("#searchInput").on("keyup", function() {
+            const value = $(this).val().toLowerCase();
+            $("#userTable tr").filter(function() {
+                $(this).toggle($(this).text().toLowerCase().indexOf(value) > -1);
+            });
+        });
+    }
+
+    validateEmail() {
+        const email = $('#editEmail').val();
+        const isValid = email && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+        $('#editEmail').toggleClass('is-invalid', !isValid);
+        return isValid;
+    }
+
+    validatePasswords() {
+        const password = $('#recoverPassword').val();
+        const confirm = $('#confirmPassword').val();
+        const isPasswordValid = password.length >= 6;
+        const isConfirmValid = password === confirm && confirm.length > 0;
+
+        $('#recoverPassword').toggleClass('is-invalid', !isPasswordValid);
+        $('#confirmPassword').toggleClass('is-invalid', !isConfirmValid);
+
+        return isPasswordValid && isConfirmValid;
+    }
+
+    showAlert(message, type = 'info') {
+        const alertElement = $('#statusAlert');
+        const messageElement = $('#statusMessage');
+        
+        alertElement.removeClass('alert-success alert-danger alert-warning alert-info');
+        alertElement.addClass(`alert-${type}`);
+        messageElement.text(message);
+        alertElement.show().addClass('show');
+
+        // Auto-hide after 5 seconds
+        setTimeout(() => this.hideAlert(), 5000);
+    }
+
+    hideAlert() {
+        $('#statusAlert').removeClass('show').fadeOut();
+    }
+
+    updateStatus(username, status) {
+        const statusElement = $(`#status-${username}`);
+        statusElement.removeClass('status-success status-error status-warning');
+        statusElement.addClass(`status-${status}`);
+    }
+
+    async deleteUser(username) {
+        if (!confirm(`Are you sure you want to delete ${username}?`)) {
+            return;
+        }
+
+        console.log(`Attempting to delete user: ${username}`);
+        this.updateStatus(username, 'warning');
+
+        try {
+            const response = await fetch(`/admin/delete_user/${username}`, {
+                method: 'DELETE',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            });
+
+            const data = await response.json();
+
+            if (response.ok) {
+                $(`#user-row-${username}`).fadeOut(300, function() {
+                    $(this).remove();
+                });
+                this.showAlert(`User ${username} deleted successfully`, 'success');
+            } else {
+                throw new Error(data.message || 'Delete failed');
+            }
+        } catch (error) {
+            console.error('Delete error:', error);
+            this.updateStatus(username, 'error');
+            this.showAlert(`Failed to delete user: ${error.message}`, 'danger');
+        }
+    }
+
+    prepareEdit(username, email) {
+        console.log(`Preparing edit for: ${username}, ${email}`);
+        
+        $('#editUsername').val(username);
+        $('#editEmail').val(email);
+        $('#editRole').val(''); // Reset role selection
+        
+        // Clear validation states
+        $('#editEmail').removeClass('is-invalid');
+        
+        // Show modal
+        const modal = new bootstrap.Modal(document.getElementById('editModal'));
+        modal.show();
+    }
+
+    async submitEdit() {
+        if (!this.validateEmail()) {
+            this.showAlert('Please enter a valid email address', 'warning');
+            return;
+        }
+
+        const username = $('#editUsername').val();
+        const email = $('#editEmail').val();
+        const role = $('#editRole').val();
+        
+        const saveBtn = $('#saveEditBtn');
+        const spinner = saveBtn.find('.spinner-border');
+        
+        // Show loading state
+        saveBtn.prop('disabled', true);
+        spinner.removeClass('d-none');
+
+        console.log(`Submitting edit for: ${username}, new email: ${email}, role: ${role}`);
+
+        try {
+            const response = await fetch(`/admin/edit_user/${username}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                body: JSON.stringify({ 
+                    email: email,
+                    role: role || undefined
+                })
+            });
+
+            const data = await response.json();
+
+            if (response.ok) {
+                // Update the email in the table
+                $(`#user-row-${username} .email-cell`).text(email);
+                this.updateStatus(username, 'success');
+                this.showAlert('User updated successfully', 'success');
+                
+                // Close modal
+                const modal = bootstrap.Modal.getInstance(document.getElementById('editModal'));
+                modal.hide();
+            } else {
+                throw new Error(data.message || 'Edit failed');
+            }
+        } catch (error) {
+            console.error('Edit error:', error);
+            this.updateStatus(username, 'error');
+            this.showAlert(`Failed to update user: ${error.message}`, 'danger');
+        } finally {
+            // Hide loading state
+            saveBtn.prop('disabled', false);
+            spinner.addClass('d-none');
+        }
+    }
+
+    prepareRecover(username) {
+        console.log(`Preparing recovery for: ${username}`);
+        
+        $('#recoverUsername').val(username);
+        $('#recoverPassword').val('');
+        $('#confirmPassword').val('');
+        $('#sendEmailNotification').prop('checked', true);
+        
+        // Clear validation states
+        $('#recoverPassword, #confirmPassword').removeClass('is-invalid');
+        
+        // Show modal
+        const modal = new bootstrap.Modal(document.getElementById('recoverModal'));
+        modal.show();
+    }
+
+    async submitRecovery() {
+        if (!this.validatePasswords()) {
+            this.showAlert('Please check your password entries', 'warning');
+            return;
+        }
+
+        const username = $('#recoverUsername').val();
+        const password = $('#recoverPassword').val();
+        const sendEmail = $('#sendEmailNotification').is(':checked');
+        
+        const saveBtn = $('#saveRecoverBtn');
+        const spinner = saveBtn.find('.spinner-border');
+        
+        // Show loading state
+        saveBtn.prop('disabled', true);
+        spinner.removeClass('d-none');
+
+        console.log(`Submitting recovery for: ${username}`);
+
+        try {
+            const response = await fetch(`/admin/recover_user/${username}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                body: JSON.stringify({ 
+                    password: password,
+                    send_email: sendEmail
+                })
+            });
+
+            const data = await response.json();
+
+            if (response.ok) {
+                this.updateStatus(username, 'success');
+                this.showAlert('Password reset successfully', 'success');
+                
+                // Close modal
+                const modal = bootstrap.Modal.getInstance(document.getElementById('recoverModal'));
+                modal.hide();
+            } else {
+                throw new Error(data.message || 'Recovery failed');
+            }
+        } catch (error) {
+            console.error('Recovery error:', error);
+            this.updateStatus(username, 'error');
+            this.showAlert(`Failed to reset password: ${error.message}`, 'danger');
+        } finally {
+            // Hide loading state
+            saveBtn.prop('disabled', false);
+            spinner.addClass('d-none');
+        }
+    }
+}
+
+// Initialize when DOM is ready
+$(document).ready(function() {
+    // Make modals draggable
+    $('.modal-dialog').draggable({
+        handle: ".modal-header"
+    });
+    
+    // Close modal when clicking outside
+    $('.modal').on('click', function(e) {
+        if ($(e.target).hasClass('modal')) {
+            $(this).modal('hide');
+        }
+    });
+    
+    // Initialize user management
+    window.userManagement = new UserManagement();
+});
+
+// Global function for hiding alerts (called from template)
+function hideAlert() {
+    if (window.userManagement) {
+        window.userManagement.hideAlert();
+    }
+}
+</script>
+{% endblock %}

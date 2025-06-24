@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Flask App{% endblock %}</title>
+    
+    <!-- Styles -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+    
+    {% block head %}{% endblock %}
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-links">
+            <a href="{{ url_for('home') }}">Home</a>
+            {% if 'username' in session %}
+                <a href="{{ url_for('game', username=session['username']) }}">Game</a>
+                <a href="{{ url_for('logout') }}">Logout</a>
+                {% if session['username'] == 'AJI_Creators' %}
+                    <a href="{{ url_for('admin_dashboard') }}">Admin Panel</a>
+                {% endif %}
+            {% else %}
+                <a href="{{ url_for('login') }}">Login</a>
+                <a href="{{ url_for('register') }}">Register</a>
+                <a href="{{ url_for('admin_login') }}">Admin Login</a>
+            {% endif %}
+            <a href="{{ url_for('qr_page') }}">QR Code</a>
+        </div>
+    </nav>
+
+    <main class="container">
+        {% block content %}{% endblock %}
+    </main>
+
+    <!-- JS Libraries (jQuery must be loaded before other scripts) -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- Block for additional scripts that need jQuery -->
+    {% block scripts %}{% endblock %}
+    
+    <!-- Debug script to verify jQuery is loaded -->
+    <script>
+        $(document).ready(function() {
+            console.log('Base template loaded - jQuery version:', $.fn.jquery);
+            console.log('Bootstrap available:', typeof bootstrap !== 'undefined');
+        });
+    </script>
+</body>
+</html>

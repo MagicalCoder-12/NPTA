@@ -1,0 +1,26 @@
+{% extends 'base.html' %}
+{% block title %}Game Portal{% endblock %}
+
+{% block content %}
+<div class="hero">
+    <div class="overlay">
+        <header>
+            <h1>Game Portal</h1>
+            <p>Embark on an Epic Gaming Adventure</p>
+        </header>
+        <nav>
+            <a href="{{ url_for('register') }}" class="btn"><i class="fas fa-user-plus"></i> Register</a>
+            <a href="{{ url_for('login') }}" class="btn"><i class="fas fa-sign-in-alt"></i> Login</a>
+            <a href="{{ url_for('qr_page') }}" class="btn"><i class="fas fa-qrcode"></i> QR Code</a>
+            {% if 'username' in session %}
+                <a href="{{ url_for('game', username=session['username']) }}" class="btn"><i class="fas fa-gamepad"></i> Play Game</a>
+            {% endif %}
+        </nav>
+    </div>
+</div>
+{% endblock %}
+
+{% block head %}
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Poppins:wght@300;500&display=swap" rel="stylesheet">
+{% endblock %}

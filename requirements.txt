@@ -1,0 +1,5 @@
+Flask
+python-dotenv
+pymongo
+flask-session
+qrcode
