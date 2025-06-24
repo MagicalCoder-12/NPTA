@@ -1,0 +1,66 @@
+{% extends 'base.html' %}
+{% block title %}Moderator Dashboard{% endblock %}
+{% block content %}
+<div class="container mt-5">
+    <h1 class="mb-4 text-center">Moderator Dashboard</h1>
+
+    <!-- Welcome Banner -->
+    <div class="alert alert-info mb-4" role="alert">
+        Welcome, <strong>{{ session['username'] }}</strong>! You are logged in as a <strong>Moderator</strong>.
+    </div>
+
+    <!-- Moderator Tools Section -->
+    <div class="row g-4">
+        <!-- Reports Overview -->
+        <div class="col-md-6">
+            <div class="card bg-dark text-white">
+                <div class="card-body">
+                    <h5 class="card-title">User Reports</h5>
+                    <p class="card-text">View and manage reports submitted by users.</p>
+                    <a href="#" class="btn btn-outline-light">Go to Reports</a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Logs / Activity -->
+        <div class="col-md-6">
+            <div class="card bg-dark text-white">
+                <div class="card-body">
+                    <h5 class="card-title">Activity Logs</h5>
+                    <p class="card-text">Review recent user activity and system logs.</p>
+                    <a href="#" class="btn btn-outline-light">View Logs</a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Content Review -->
+        <div class="col-md-6">
+            <div class="card bg-dark text-white">
+                <div class="card-body">
+                    <h5 class="card-title">Content Moderation</h5>
+                    <p class="card-text">Manage flagged content and user posts.</p>
+                    <a href="#" class="btn btn-outline-light">Moderate Content</a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Account Management -->
+        <div class="col-md-6">
+            <div class="card bg-dark text-white">
+                <div class="card-body">
+                    <h5 class="card-title">Account Actions</h5>
+                    <p class="card-text">Suspend or warn users if necessary.</p>
+                    <a href="#" class="btn btn-outline-light">Manage Users</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Optional Info Box -->
+    <div class="mt-4">
+        <div class="alert alert-secondary" role="alert">
+            As a moderator, you have limited admin privileges. For full admin access, contact an administrator.
+        </div>
+    </div>
+</div>
+{% endblock %}

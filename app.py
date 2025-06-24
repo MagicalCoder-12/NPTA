@@ -1,11 +1,11 @@
 from flask import Flask, render_template, request, redirect, url_for, session, send_file, abort, jsonify
 from pymongo import MongoClient
 from flask_session import Session
-from dotenv import load_dotenv
 from werkzeug.security import generate_password_hash, check_password_hash
 import os
 import qrcode
 from io import BytesIO
+from dotenv import load_dotenv
 
 # Load environment variables
 load_dotenv()
@@ -20,34 +20,71 @@ client = MongoClient(os.getenv('MONGO_URI', 'mongodb://localhost:27017/'))
 db = client['game_db']
 users_collection = db['users']
 
-ADMIN_USERNAME = os.getenv('ADMIN_USERNAME')
-ADMIN_PASSWORD = os.getenv('ADMIN_PASSWORD')
+# Initial admin from .env
+INITIAL_ADMIN_USERNAME = os.getenv('ADMIN_USERNAME')
+INITIAL_ADMIN_PASSWORD = os.getenv('ADMIN_PASSWORD')
+
+
+# Create initial admin if needed
+def create_initial_admin():
+    if INITIAL_ADMIN_USERNAME and INITIAL_ADMIN_PASSWORD:
+        existing_user = users_collection.find_one({'username': INITIAL_ADMIN_USERNAME})
+        hashed_pw = generate_password_hash(INITIAL_ADMIN_PASSWORD)
+        if not existing_user:
+            users_collection.insert_one({
+                'username': INITIAL_ADMIN_USERNAME,
+                'password': hashed_pw,
+                'role': 'admin',
+                'email': f"{INITIAL_ADMIN_USERNAME}@example.com"
+            })
+        else:
+            users_collection.update_one(
+                {'username': INITIAL_ADMIN_USERNAME},
+                {'$set': {
+                    'password': hashed_pw,
+                    'role': 'admin'
+                }}
+            )
+
+
+# Call on startup
+create_initial_admin()
+
 
 # Reusable error rendering
 def render_error(template, message):
     return render_template(template, error=message)
 
+
 @app.route('/')
 def home():
     return render_template('index.html')
+
 
 @app.route('/admin_login', methods=['GET', 'POST'])
 def admin_login():
     if request.method == 'POST':
         username = request.form['username']
         password = request.form['password']
-        if username == ADMIN_USERNAME and password == ADMIN_PASSWORD:
+
+        user = users_collection.find_one({'username': username})
+
+        if user and check_password_hash(user['password'], password) and user.get('role') == 'admin':
             session['is_admin'] = True
             session['username'] = username
             return redirect(url_for('admin_dashboard'))
+
         return render_template('admin_login.html', error='Invalid admin credentials')
+
     return render_template('admin_login.html')
+
 
 @app.route('/admin')
 def admin_dashboard():
     if not session.get('is_admin'):
         return redirect(url_for('admin_login'))
     return render_template('admin.html')
+
 
 @app.route('/admin/users')
 def view_users():
@@ -56,25 +93,36 @@ def view_users():
     users = list(users_collection.find({}, {'_id': 0, 'password': 0}))
     return render_template('users.html', users=users)
 
+
 @app.route('/admin/delete_user/<username>')
 def delete_user(username):
-    if not session.get('is_admin'): return abort(403)
+    if not session.get('is_admin'):
+        return abort(403)
     users_collection.delete_one({'username': username})
     return jsonify(success=True)
 
-@app.route('/admin/edit_user/<username>', methods=['POST'])
-def edit_user(username):
-    if not session.get('is_admin'): return abort(403)
-    data = request.get_json()
-    print(f"Edit request for {username}: {data}")
-    users_collection.update_one({'username': username}, {'$set': {'email': data.get('email')}})
-    return jsonify(success=True)
 
-@app.route('/admin/recover_user/<username>', methods=['POST'])
-def recover_user(username):
-    if not session.get('is_admin'): return abort(403)
+@app.route('/admin/edit_user/<username>', methods=['PUT'])  # Change to PUT
+def edit_user(username):
+    if not session.get('is_admin'):
+        return abort(403)
     data = request.get_json()
-    print(f"Recover request for {username}: {data}")
+    update_data = {'email': data.get('email')}
+    if 'role' in data and data['role'] is not None:  # Check for None explicitly
+        update_data['role'] = data.get('role')
+    try:
+        result = users_collection.update_one({'username': username}, {'$set': update_data})
+        if result.matched_count == 0:
+            return jsonify({'message': 'User not found'}), 404
+        return jsonify({'success': True, 'message': 'User updated successfully'}), 200
+    except Exception as e:
+        return jsonify({'message': str(e)}), 500
+
+@app.route('/admin/recover_user/<username>', methods=['PUT'])
+def recover_user(username):
+    if not session.get('is_admin'):
+        return abort(403)
+    data = request.get_json()
     hashed_pw = generate_password_hash(data.get('password'))
     users_collection.update_one({'username': username}, {'$set': {'password': hashed_pw}})
     return jsonify(success=True)
@@ -107,6 +155,7 @@ def register():
 
     return render_template('register.html')
 
+
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
@@ -114,24 +163,39 @@ def login():
         password = request.form['password']
 
         user = users_collection.find_one({'username': username})
+
         if user and check_password_hash(user['password'], password):
             session['username'] = username
-            return redirect(url_for('game', username=username))
+            
+            if user.get('role') == 'admin':
+                session['is_admin'] = True
+            elif user.get('role') == 'moderator':
+                session['is_moderator'] = True
+
+            return redirect(url_for('home'))  # ✅ Fixed: use 'home' as the endpoint
         else:
             return render_error('login.html', 'Invalid credentials')
 
     return render_template('login.html')
+
+@app.route('/moderator')
+def moderator_dashboard():
+    if not session.get('is_moderator'):
+        return redirect(url_for('home'))
+    return render_template('moderator.html')
 
 @app.route('/logout')
 def logout():
     session.clear()
     return redirect(url_for('home'))
 
+
 @app.route('/game/<username>')
 def game(username):
     if 'username' in session and session['username'] == username:
         return render_template('game.html', username=username)
     return redirect(url_for('home'))
+
 
 @app.route('/generate_qr')
 def generate_qr():
@@ -146,17 +210,21 @@ def generate_qr():
     buf.seek(0)
     return send_file(buf, mimetype='image/png', download_name='website_qr.png')
 
+
 @app.route('/qr')
 def qr_page():
     return render_template('qr.html')
+
 
 @app.errorhandler(404)
 def page_not_found(e):
     return render_template('404.html'), 404
 
+
 @app.errorhandler(403)
 def forbidden(e):
     return "Access Denied", 403
+
 
 if __name__ == '__main__':
     app.run(debug=True)
