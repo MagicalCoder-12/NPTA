@@ -4,19 +4,22 @@ services:
     env: python
     buildCommand: pip install -r requirements.txt
     startCommand: gunicorn --bind 0.0.0.0:$PORT --workers 2 --threads 4 --timeout 120 app:app
+
     envVars:
       - key: PYTHON_VERSION
         value: 3.11.7
       - key: SECRET_KEY
         generateValue: true
       - key: MONGO_URI
-        sync: false  # Set this in Render dashboard
+        sync: false  # Set securely in Render dashboard
       - key: ADMIN_USERNAME
-        sync: false  # Set this in Render dashboard
+        sync: false
       - key: ADMIN_PASSWORD
-        sync: false  # Set this in Render dashboard
-    healthCheckPath: /health
+        sync: false
+
     autoDeploy: true
+    healthCheckPath: /
+
     disk:
       name: flask-sessions
       mountPath: /opt/render/project/src/flask_session
